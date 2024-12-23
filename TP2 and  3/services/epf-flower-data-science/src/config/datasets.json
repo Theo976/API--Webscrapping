@@ -1,0 +1,20 @@
+{
+    "datasets": [
+        {
+            "name": "iris",
+            "url": "https://raw.githubusercontent.com/uciml/iris/master/iris.data"
+        },
+        {
+            "name": "iris2",
+            "url": "https://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data"
+        },
+        {
+            "name": "string",
+            "url": "string"
+        },
+        {
+            "name": "123",
+            "url": "234"
+        }
+    ]
+}
