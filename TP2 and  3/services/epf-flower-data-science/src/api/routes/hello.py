@@ -1,9 +1,9 @@
 from fastapi import APIRouter
 from src.schemas.message import MessageResponse
 
-router = APIRouter()
+router = APIRouter(prefix="/hello", tags=["hello"])
 
-
-@router.get("/hello/{name}", name="Demo route", response_model=MessageResponse)
-def hello(name: str) -> MessageResponse:
-    return MessageResponse(message=f"Hello {name}, from fastapi test route !")
+@router.get("/", response_model=MessageResponse)
+async def hello():
+    """Premier endpoint de test"""
+    return MessageResponse(message="Hello, World!")

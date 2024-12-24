@@ -9,51 +9,35 @@ from src.config.firebase_config import db
 
 security = HTTPBearer()
 
-def verify_token(credentials: HTTPAuthorizationCredentials = Security(security)) -> dict:
-    """Vérifie le token JWT Firebase"""
+async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Step 16: Vérifie le token JWT"""
     try:
         token = credentials.credentials
-        # Enlever 'Bearer ' si présent
-        if token.startswith('Bearer '):
-            token = token[7:]
-            
-        print(f"Token length: {len(token)}")
-        print(f"Token first part: {token[:50]}...")
-        
-        try:
-            # Vérifier que le token est un JWT valide
-            if not token or '.' not in token:
-                raise ValueError("Invalid token format")
-                
-            decoded_token = auth.verify_id_token(token)
-            user_id = decoded_token.get('uid')
-            print(f"Token successfully verified for user: {user_id}")
-            return decoded_token
-            
-        except ValueError as ve:
-            print(f"Value error: {str(ve)}")
-            raise HTTPException(
-                status_code=401,
-                detail=f"Invalid token format: {str(ve)}"
-            )
-        except auth.InvalidIdTokenError as e:
-            print(f"Invalid ID token: {str(e)}")
-            raise HTTPException(
-                status_code=401,
-                detail=f"Invalid ID token: {str(e)}"
-            )
-        except Exception as e:
-            print(f"Token verification failed: {str(e)}")
-            raise HTTPException(
-                status_code=401,
-                detail=f"Token verification failed: {str(e)}"
-            )
-            
+        decoded_token = auth.verify_id_token(token)
+        return decoded_token
     except Exception as e:
-        print(f"Authentication error: {str(e)}")
         raise HTTPException(
             status_code=401,
-            detail=f"Invalid authentication credentials. {str(e)}"
+            detail=f"Invalid token: {str(e)}"
+        )
+
+async def get_current_admin(token: dict = Depends(verify_token)):
+    """Step 17: Vérifie les permissions admin"""
+    try:
+        user_id = token.get('uid')
+        user_ref = db.collection('users').document(user_id)
+        user_doc = user_ref.get()
+        
+        if not user_doc.exists or user_doc.to_dict().get('role') != 'admin':
+            raise HTTPException(
+                status_code=403,
+                detail="Admin access required"
+            )
+        return token
+    except Exception as e:
+        raise HTTPException(
+            status_code=403,
+            detail=str(e)
         )
 
 def check_admin_role(token_data: dict) -> bool:
@@ -86,16 +70,6 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
             status_code=401,
             detail="Invalid authentication credentials"
         )
-
-def get_current_admin(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    """Vérifie si l'utilisateur est admin"""
-    user = get_current_user(credentials)
-    if user.get('role') != 'admin':
-        raise HTTPException(
-            status_code=403,
-            detail="Not enough permissions"
-        )
-    return user
 
 def create_user(email: str, password: str, role: str = "user"):
     """Crée un nouvel utilisateur dans Firebase"""
