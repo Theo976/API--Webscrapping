@@ -1,17 +1,18 @@
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from fastapi import Request
+from fastapi.responses import JSONResponse
 
-limiter = Limiter(key_func=get_remote_address)
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=["60/minute"]
+)
 
-def rate_limit_key(request: Request):
-    """Generate rate limit key based on IP and user"""
-    try:
-        token = request.headers.get('Authorization')
-        if token:
-            from src.auth.firebase_auth import verify_token
-            user_id = verify_token(token).get('uid')
-            return f"{get_remote_address(request)}:{user_id}"
-    except:
-        pass
-    return get_remote_address(request)
+def rate_limit_exceeded_handler(request: Request, exc: Exception) -> JSONResponse:
+    return JSONResponse(
+        status_code=429,
+        content={
+            "error": "Rate limit exceeded",
+            "detail": "Too many requests"
+        }
+    )

@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.security import HTTPBearer
 from src.api.router import router
 from slowapi.errors import RateLimitExceeded
@@ -37,7 +37,25 @@ def get_application() -> FastAPI:
     # Gestionnaire d'erreurs pour le rate limiting
     @app.exception_handler(RateLimitExceeded)
     async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
-        return {"error": "Rate limit exceeded"}
+        return JSONResponse(
+            status_code=429,
+            content={
+                "error": "Rate limit exceeded",
+                "detail": "Too many requests. Try again later.",
+                "retry_after": str(exc.retry_after)
+            }
+        )
+    
+    # Gestionnaire d'erreurs global
+    @app.exception_handler(Exception)
+    async def global_exception_handler(request: Request, exc: Exception):
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": "Internal Server Error",
+                "detail": str(exc)
+            }
+        )
         
     return app
 
